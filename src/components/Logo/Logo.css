@@ -1,0 +1,9 @@
+.Tilt {
+    background-color: white;
+}
+.image{
+    position: absolute;
+    left: 0;
+    margin-bottom: 5px;
+    top:0;
+}
