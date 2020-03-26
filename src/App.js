@@ -6,15 +6,10 @@ import ImageForm from './components/ImageForm/ImageForm';
 import Rank from './components/Rank/Rank';
 import FaceFinder from './components/FaceFinder/FaceFinder';
 import SignIn from './components/SignIn/SignIn';
-import './App.css';
+import Register from './components/Register/Register';
 import Particles from 'react-particles-js';
-
-
-const Clarifai = require('clarifai');
-
-const app = new Clarifai.App({
-  apiKey: '5835bf370cc44ca3a77661570a8aaad2'
- });
+import Clarifai from 'clarifai';
+import './App.css';
 
 const particleOptions = {
   particles: {
@@ -125,6 +120,11 @@ const particleOptions = {
     }
   },
 }
+
+const app = new Clarifai.App({
+  apiKey: '5835bf370cc44ca3a77661570a8aaad2'
+ });
+
 class App extends Component {
   constructor() {
     super();
@@ -132,8 +132,26 @@ class App extends Component {
       input: '',
       imageUrl: '',
       box: {},
-      route: 'signin'
+      route: 'signin',
+      isSignedIn: false,
+      user: {
+        id: '',
+        name: '',
+        email: '',
+        entries: 0,
+        joined: ''
+      }
     }
+  }
+
+  loadUser = (data) => {
+    this.setState({user: {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      entries: data.entries,
+      joined: data.joined
+    }})
   }
 
   calculateFaceLocation = (data) => {
@@ -151,7 +169,6 @@ class App extends Component {
   }
 
   displayBox = (box) => {
-    console.log(box);
     this.setState({box: box});
   }
 
@@ -166,7 +183,23 @@ class App extends Component {
       .predict(
         Clarifai.FACE_DETECT_MODEL, 
         this.state.input)
-      .then(response => this.displayBox(this.calculateFaceLocation(response)))
+      .then((response) => {
+        if(response) {
+          fetch('http://localhost:3000/image', {
+            method: 'put',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                id: this.state.user.id
+            })
+          })
+          .then(response => response.json())
+          .then(count => {
+            this.setState(Object.assign(this.state.user, {entries: count}))
+            
+          })
+        }
+        this.displayBox(this.calculateFaceLocation(response))
+      })
       .catch(err => console.log(err));
       this.clearUrl();
   }
@@ -179,18 +212,35 @@ class App extends Component {
         .predict(
           Clarifai.FACE_DETECT_MODEL, 
           this.state.input)
-        .then(response => this.displayBox(this.calculateFaceLocation(response)))
+          .then((response) => {
+            if(response) {
+              fetch('http://localhost:3000/image', {
+                method: 'put',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    id: this.state.user.id
+                })
+              })
+              .then(response => response.json())
+              .then(count => {
+                this.setState(Object.assign(this.state.user, {entries: count}))
+                
+              })
+            }
+            this.displayBox(this.calculateFaceLocation(response))
+          })
         .catch(err => console.log(err));
         this.clearUrl();
     }
   }
 
-  onRouteChange = () => {
-    this.setState({route: 'home'});
-  }
-
-  onSignOut = () => {
-    this.setState({route: 'signin'});
+  onRouteChange = (route) => {
+    if (route === 'signout') {
+      this.setState({isSignedIn: false})
+    } else if (route === 'home') {
+      this.setState({isSignedIn: true})
+    }
+    this.setState({route: route});
   }
 
   clearUrl = () => {
@@ -203,28 +253,36 @@ class App extends Component {
         <div style={{width: '100%', position: 'fixed', zIndex: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', backgroundColor: 'royalblue', borderBottom: '1px solid black'}}>
           <Logo />
           <Title />
-          {this.state.route !== 'signin'
-            ? <div>
-                <Navigation onSignOut={this.onSignOut} />
-              </div>
-            : <div style={{width: '147px'}}></div>
-          }
-          
+          <div>
+            <Navigation onRouteChange={this.onRouteChange} isSignedIn={this.state.isSignedIn} route={this.state.route}/>
+          </div>
         </div>
-        {this.state.route === 'signin'
+        {this.state.route ==='home'
+            ? <div>
+                <div style={{position: 'relative', height: '300px'}}></div>
+                <div style={{position: 'relative'}}>
+                  <Particles className='particles' params={particleOptions} />
+                  <Rank name={this.state.user.name} entries={this.state.user.entries} />
+                  <ImageForm  value={this.state.input} onInputChange={this.onInputChange} onSubmit={this.onSubmit} onEnter={this.onEnter} />
+                  <FaceFinder box={this.state.box} imageUrl={this.state.imageUrl}/>
+                </div>
+              </div>
+            : ( this.state.route === 'register'
           ? <div>
               <div style={{position: 'relative', height: '300px'}}></div>
-              <SignIn style={{position: 'relative', top: '300px'}} className='center' onRouteChange={this.onRouteChange} />
+              <div>
+                <Particles className='particles' params={particleOptions} />
+                <Register style={{position: 'relative', top: '300px'}} className='center' onRouteChange={this.onRouteChange} loadUser={this.loadUser} />
+              </div>
             </div>
           : <div>
               <div style={{position: 'relative', height: '300px'}}></div>
-              <div style={{position: 'relative'}}>
+              <div>
                 <Particles className='particles' params={particleOptions} />
-                <Rank />
-                <ImageForm  value={this.state.input} onInputChange={this.onInputChange} onSubmit={this.onSubmit} onEnter={this.onEnter} />
-                <FaceFinder box={this.state.box} imageUrl={this.state.imageUrl}/>
-              </div>
-          </div>
+                <SignIn loadUser={this.loadUser} className='center' onRouteChange={this.onRouteChange} />
+              </div> 
+            </div>
+          )
         } 
       </div>
     );
