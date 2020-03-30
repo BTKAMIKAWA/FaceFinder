@@ -13,6 +13,7 @@ const Rank = ({ name, entries }) => {
                 {'pictures'}
             </div>
             <h2 style={{color: 'white', fontWeight: 'normal'}}>FaceFinder finds all the faces in your pictures. Give it a try!</h2>
+            
         </div>
     );
 }

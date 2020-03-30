@@ -7,6 +7,7 @@ import Rank from './components/Rank/Rank';
 import FaceFinder from './components/FaceFinder/FaceFinder';
 import SignIn from './components/SignIn/SignIn';
 import Register from './components/Register/Register';
+import Profile from './components/Profile/Profile';
 import Particles from 'react-particles-js';
 import Clarifai from 'clarifai';
 import './App.css';
@@ -131,7 +132,7 @@ class App extends Component {
     this.state = {
       input: '',
       imageUrl: '',
-      box: {},
+      boxes: [],
       route: 'signin',
       isSignedIn: false,
       user: {
@@ -155,21 +156,22 @@ class App extends Component {
   }
 
   calculateFaceLocation = (data) => {
-    const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
-    console.log(clarifaiFace);
     const image = document.getElementById('inputimage');
     const width = Number(image.width);
     const height = Number(image.height);
-    return {
-      leftCol: clarifaiFace.left_col * width,
-      topRow: clarifaiFace.top_row * height,
-      rightCol: width - (clarifaiFace.right_col * width),
-      bottomRow: height - (clarifaiFace.bottom_row * height)
-    }
+    return data.outputs[0].data.regions.map(face => {
+      const clarifaiFace = face.region_info.bounding_box;
+      return {
+        leftCol: clarifaiFace.left_col * width,
+        topRow: clarifaiFace.top_row * height,
+        rightCol: width - (clarifaiFace.right_col * width),
+        bottomRow: height - (clarifaiFace.bottom_row * height)
+      }
+    });
   }
 
-  displayBox = (box) => {
-    this.setState({box: box});
+  displayBox = (boxes) => {
+    this.setState({boxes: boxes});
   }
 
   onInputChange = (event) => {
@@ -239,8 +241,10 @@ class App extends Component {
       this.setState({isSignedIn: false})
     } else if (route === 'home') {
       this.setState({isSignedIn: true})
-    }
+    } 
     this.setState({route: route});
+    console.log(route);
+    console.log(this.state.user.name)
   }
 
   clearUrl = () => {
@@ -263,26 +267,32 @@ class App extends Component {
                 <div style={{position: 'relative'}}>
                   <Particles className='particles' params={particleOptions} />
                   <Rank name={this.state.user.name} entries={this.state.user.entries} />
-                  <ImageForm  value={this.state.input} onInputChange={this.onInputChange} onSubmit={this.onSubmit} onEnter={this.onEnter} />
-                  <FaceFinder box={this.state.box} imageUrl={this.state.imageUrl}/>
+                  <ImageForm   onRouteChange={this.onRouteChange} value={this.state.input} onInputChange={this.onInputChange} onSubmit={this.onSubmit} onEnter={this.onEnter} />
+                  <FaceFinder boxes={this.state.boxes} imageUrl={this.state.imageUrl}/>
                 </div>
               </div>
             : ( this.state.route === 'register'
-          ? <div>
-              <div style={{position: 'relative', height: '300px'}}></div>
-              <div>
-                <Particles className='particles' params={particleOptions} />
-                <Register style={{position: 'relative', top: '300px'}} className='center' onRouteChange={this.onRouteChange} loadUser={this.loadUser} />
-              </div>
-            </div>
-          : <div>
-              <div style={{position: 'relative', height: '300px'}}></div>
-              <div>
-                <Particles className='particles' params={particleOptions} />
-                <SignIn loadUser={this.loadUser} className='center' onRouteChange={this.onRouteChange} />
-              </div> 
-            </div>
-          )
+              ? <div>
+                  <div style={{position: 'relative', height: '300px'}}></div>
+                  <div>
+                    <Particles className='particles' params={particleOptions} />
+                    <Register style={{position: 'relative', top: '300px'}} className='center' onRouteChange={this.onRouteChange} loadUser={this.loadUser} />
+                  </div>
+                </div>
+                : ( this.state.route === 'profile'
+                  ? <div>
+                      <div style={{position: 'relative', height: '300px'}}></div>
+                        <Particles className='particles' params={particleOptions} />    
+                        <Profile user={this.state.user} onRouteChange={this.onRouteChange} />
+                    </div>
+                  : <div>
+                      <div style={{position: 'relative', height: '300px'}}></div>
+                      <div>
+                        <Particles className='particles' params={particleOptions} />
+                        <SignIn loadUser={this.loadUser} className='center' onRouteChange={this.onRouteChange} />
+                      </div> 
+                    </div>
+                  ))
         } 
       </div>
     );
